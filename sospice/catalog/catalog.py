@@ -235,8 +235,11 @@ class Catalog(pd.DataFrame):
             return self
         df = self
         if wavelength is not None:
-            df = df[df["WAVEMAX"] >= float(wavelength)]
-            df = df[df["WAVEMIN"] <= float(wavelength)]
+
+            wavelength =  float(wavelength) * u.nm
+            contains_wl = df.apply(lambda row: wavelength in FileMetadata(row).get_wavelengths(), axis=1)
+            df = df[contains_wl]
+
         return Catalog(data_frame=df)
 
     def find_files(
