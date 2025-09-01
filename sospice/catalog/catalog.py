@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 
 from astropy.utils.data import download_file
+import astropy.units as u
 
 from .release import Release
 from .file_metadata import FileMetadata, required_columns
@@ -225,6 +226,7 @@ class Catalog(pd.DataFrame):
         ----------
         wavelength:
             Wavelength that must be included in the file wavelength's range
+            must be defined in a length astropy unit only
 
         Return
         ------
@@ -236,9 +238,16 @@ class Catalog(pd.DataFrame):
         df = self
         if wavelength is not None:
 
-            wavelength =  float(wavelength) * u.nm
-            contains_wl = df.apply(lambda row: wavelength in FileMetadata(row).get_wavelengths(), axis=1)
-            df = df[contains_wl]
+            # Check the unit is an length astropy unit
+            if isinstance(wavelength, u.Quantity) and wavelength.unit.is_equivalent(u.nm):
+
+                    if wavelength.unit != u.nm:
+                        wavelength.to(u.nm)
+
+                    contains_wl = df.apply(lambda row: wavelength in FileMetadata(row).get_wavelengths(), axis=1)
+                    df = df[contains_wl]
+            else:  
+                raise TypeError("Input must be a length astropy Quantity")
 
         return Catalog(data_frame=df)
 
