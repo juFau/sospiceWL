@@ -2,16 +2,20 @@ from astropy.io import fits
 import copy
 import warnings
 
-def pix_desat(hdul, nbHdu = None, thr = None):
+def pix_desat(hdul, nbHdu = None, hduName = None, thr = None):
     """
     Replace Nan from saturated elements by estimated value, depending on the saturated elements contribution
 
     Parameters
     ----------
     hdul: List of hdus
-    nbHdu: (optionnal) None or int 
-            Indicates the number of the hdu that must be processed (starting from 0)
+    nbHdu: (optionnal) None or List of int 
+            nbHdu or hduName, will only process nbHdu if both
+            Indicates the numbers of the hdus that must be processed (starting from 0)
             Processes all hdus if None
+    hduName: (optionnal) None or List of string
+            nbHdu or hduName, will only process nbHdu if both
+            Indicates the names of the hdus that must be processed
     thr: (optionnal) None or float between 0 and 1
             Pixels are replaced only if the saturated elements contribution is under or equal to the threshold
             if None the threshold is set to 1 (all pixels are retrieved)
@@ -26,16 +30,20 @@ def pix_desat(hdul, nbHdu = None, thr = None):
     hdul_corr = copy.deepcopy(hdul)
 
     if nbHdu is not None:
-        # only 1 hdu
-        if nbHdu < len(hdul) and nbHdu >= 0:
-            hdul_corr = [hdul_corr[nbHdu]]
+        if all(0 <= i < len(hdul) for i in nbHdu):
+            hdul_corr = [hdul_corr[nbH] for nbH in nbHdu]
         else:
-            warnings.warn("Wrong Hdu number")
+            warnings.warn("Wrong Hdu number, full hdu list processed")
+    elif hduName is not None:
+            try:
+                hdul_corr = [hdul_corr[name] for name in hduName]
+            except KeyError:
+                warnings.warn("Unknown hdu name, full hdu list processed")
 
     if thr is None or thr<0:
         thr = 1 #takes all estimated pixels
     
-    for hdu in enumerate(hdul_corr) :
+    for ii, hdu in enumerate(hdul_corr):
 
         # Select only Image HDU
         if isinstance(hdu, (fits.PrimaryHDU, fits.ImageHDU)) : 
@@ -59,7 +67,7 @@ def pix_desat(hdul, nbHdu = None, thr = None):
                     warnings.warn("Missing associated table")
 
             else:
-                print("No saturated pixel")
+                warnings.warn("No saturated pixel")
         
 
     return hdul_corr
