@@ -9,6 +9,8 @@ from sunpy.coordinates import frames
 from astropy.coordinates import SkyCoord
 from sunpy.sun.models import differential_rotation
 from astropy.constants import R_sun
+from datetime import datetime
+
 
 
 """
@@ -112,7 +114,17 @@ def add_distortion_to_coordinates(coordinates, hdul):
     Tx, Ty = coordinates
     Tx_corr = hdul['WCSDVARR', 1].data
     Ty_corr = hdul['WCSDVARR', 2].data
-    return np.array([Tx - Tx_corr, Ty - Ty_corr])
+
+    # Sign correction depending on FITS DATE > 2023-09-18T00
+    date_hdu = datetime.fromisoformat(hdul[0].header["DATE"])
+    threshold = datetime.fromisoformat("2023-09-18T00:00:00")
+    if date_hdu < threshold:
+        res = np.array([Tx - Tx_corr, Ty - Ty_corr])
+    else:
+        res = np.array([Tx + Tx_corr, Ty + Ty_corr])
+
+    
+    return res
 
 
 
